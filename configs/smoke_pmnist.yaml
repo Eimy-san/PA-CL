@@ -1,0 +1,41 @@
+# Smoke-test config: short Continual-Permuted-MNIST stream.
+# Purpose: exercise the full pipeline (data, model, PACL hooks,
+# Fisher accumulator, eval loop). NOT a scientific validation.
+# Expected wall time: ~3-5 minutes on any GPU; runs on CPU too.
+
+experiment_name: smoke_pmnist
+out_dir: runbook/smoke_pmnist
+
+dataset:
+  name: permuted_mnist
+  root: ./data
+  n_tasks: 5
+  batch_size: 128
+  seed: 0
+
+model:
+  name: mlp
+  in_dim: 784
+  hidden_dims: [256, 256]
+  out_dim: 10
+
+baseline: erm
+
+pacl:
+  enabled: true
+  lam: 0.1
+  beta: 0.99
+  alpha: 0.9
+  tau: 1.0e-4
+  layer_names: ["hidden.h1", "hidden.h2"]
+
+optimizer:
+  name: sgd
+  lr: 0.05
+  momentum: 0.9
+  weight_decay: 5.0e-4
+
+training:
+  epochs_per_task: 1
+  device: cuda  # auto-falls back to cpu if cuda unavailable
+  log_every: 100

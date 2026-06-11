@@ -1,0 +1,41 @@
+# Tiny dry-run config: 4 tasks, small net, ~1 minute on CPU.
+# Used to validate the pipeline + all three methods (erm, cbp, pacl)
+# before launching the full 200-task PoC on the GPU.
+
+experiment_name: poc_cpmnist_tiny
+out_dir: runbook/poc_cpmnist_tiny
+
+dataset:
+  name: permuted_mnist
+  root: ./data
+  n_tasks: 4
+  batch_size: 128
+  seed: 0
+
+model:
+  name: mlp
+  in_dim: 784
+  hidden_dims: [128, 128]
+  out_dim: 10
+
+baseline: erm
+baseline_kwargs: {}
+
+pacl:
+  enabled: false
+  lam: 0.1
+  beta: 0.99
+  alpha: 0.9
+  tau: 1.0e-4
+  layer_names: ["hidden.h1", "hidden.h2"]
+
+optimizer:
+  name: sgd
+  lr: 0.01
+  momentum: 0.9
+  weight_decay: 0.0
+
+training:
+  epochs_per_task: 1
+  device: cuda
+  log_every: 100

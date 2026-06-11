@@ -1,0 +1,55 @@
+# =====================================================================
+# Ablation 1: PA-CL lambda sweep on Split-CIFAR-100 / ResNet-18.
+#
+# Method: pacl_er (PA-CL stacked on Experience Replay).
+# Sweep: lambda in {0.0, 0.01, 0.1, 1.0, 10.0}.
+# Seeds: 1 each (5 cells total).
+#
+# Wall time estimate (4090): ~10-15 min per cell, ~1h total.
+#
+# Output: runbook/cifar100_lambda/lam_<value>/seed0/...
+# Aggregator produces a single table + line plot of ACC vs lambda
+# and rank-vs-lambda, showing the Pareto frontier.
+# =====================================================================
+
+experiment_name: cifar100_lambda
+out_dir: runbook/cifar100_lambda
+
+dataset:
+  name: split_cifar100
+  root: ./data
+  n_tasks: 10
+  classes_per_task: 10
+  batch_size: 32
+  seed: 0
+  download: false
+
+model:
+  name: cifar_resnet18
+  num_classes: 100
+  base_width: 64
+
+baseline: er                # PA-CL stacked on ER (locked for this sweep)
+baseline_kwargs:
+  buffer_size: 500
+  buffer_batch: 32
+  alpha: 1.0                # ER replay weight; alpha here is for ER, not DER++
+
+pacl:
+  enabled: true             # always on for this sweep
+  lam: 0.1                  # overridden per-cell via --lam
+  beta: 0.99
+  alpha: 0.9
+  tau: 1.0e-4
+  layer_names: ["avgpool_tap"]
+
+optimizer:
+  name: sgd
+  lr: 0.03
+  momentum: 0.9
+  weight_decay: 5.0e-4
+
+training:
+  epochs_per_task: 20
+  device: cuda
+  log_every: 200

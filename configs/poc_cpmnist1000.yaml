@@ -1,0 +1,58 @@
+# =====================================================================
+# Long-horizon Continual-Permuted-MNIST: 1000 tasks.
+#
+# Purpose: the canonical reviewer ask for a loss-of-plasticity paper
+# is to push the task horizon far enough that ERM's accuracy actually
+# collapses (not just the rank). Dohare et al. (2024, Nature) report
+# accuracy collapse on the order of 1000+ tasks with vanilla SGD on
+# small MLPs; we reproduce that regime here.
+#
+# Methods (via --method): erm, cbp, pacl.  Seeds: 0, 1, 2.
+# Wall time estimate (4090): ~10-12 min per ERM/CBP seed,
+# ~25-30 min per PA-CL seed. Total ~3-4h for 9 cells.
+#
+# All other hyperparameters match poc_cpmnist200.yaml so the new
+# results are directly comparable to the 200-task headline.
+# =====================================================================
+
+experiment_name: poc_cpmnist1000
+out_dir: runbook/poc_cpmnist1000
+
+dataset:
+  name: permuted_mnist
+  root: ./data
+  n_tasks: 1000
+  batch_size: 16
+  samples_per_task: 5000
+  seed: 0
+  download: false
+
+model:
+  name: mlp
+  in_dim: 784
+  hidden_dims: [300, 150]
+  out_dim: 10
+  bias: true
+  act: relu
+
+baseline: erm
+baseline_kwargs: {}
+
+pacl:
+  enabled: false
+  lam: 0.1
+  beta: 0.99
+  alpha: 0.9
+  tau: 1.0e-4
+  layer_names: ["hidden.h1", "hidden.h2"]
+
+optimizer:
+  name: sgd
+  lr: 0.01
+  momentum: 0.0
+  weight_decay: 0.0
+
+training:
+  epochs_per_task: 1
+  device: cuda
+  log_every: -1  # silent inside-task; one line per task done

@@ -1,0 +1,43 @@
+# Offline dry-run config (no network needed). Uses fake_pmnist to
+# exercise the full pipeline (data, model, all 3 methods, CBP post_step,
+# PA-CL two-backward path, Fisher accumulator, rank diagnostics,
+# aggregator + plotter + gate). Runs end-to-end in ~30s on CPU.
+
+experiment_name: dryrun_fake
+out_dir: runbook/dryrun_fake
+
+dataset:
+  name: fake_pmnist
+  n_tasks: 5
+  batch_size: 128
+  seed: 0
+  n_train: 1024
+  n_test: 256
+
+model:
+  name: mlp
+  in_dim: 784
+  hidden_dims: [64, 64]
+  out_dim: 10
+
+baseline: erm
+baseline_kwargs: {}
+
+pacl:
+  enabled: false
+  lam: 0.1
+  beta: 0.99
+  alpha: 0.9
+  tau: 1.0e-4
+  layer_names: ["hidden.h1", "hidden.h2"]
+
+optimizer:
+  name: sgd
+  lr: 0.05
+  momentum: 0.9
+  weight_decay: 0.0
+
+training:
+  epochs_per_task: 1
+  device: cuda
+  log_every: 500

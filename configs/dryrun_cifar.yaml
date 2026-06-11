@@ -1,0 +1,50 @@
+# Offline CIFAR-100 dry-run (no network needed).
+# Exercises the ResNet-18 + Split-CIFAR-100 + all baselines + PA-CL
+# pipeline on a 5-task * 4-class synthetic stand-in.
+# Runs end-to-end in ~30s on CPU.
+
+experiment_name: dryrun_cifar
+out_dir: runbook/dryrun_cifar
+
+dataset:
+  name: fake_split_cifar100
+  n_tasks: 5
+  classes_per_task: 4
+  n_train_per_class: 30
+  n_test_per_class: 10
+  seed: 0
+  batch_size: 32
+
+model:
+  name: cifar_resnet18
+  num_classes: 20    # n_tasks * classes_per_task
+  base_width: 16     # tiny variant for CPU
+
+baseline: erm
+baseline_kwargs:
+  buffer_size: 50
+  buffer_batch: 8
+  alpha: 0.5
+  beta: 0.5
+  lambda_ewc: 10.0
+  fisher_samples: 200
+  num_classes: 20
+
+pacl:
+  enabled: false
+  lam: 0.1
+  beta: 0.99
+  alpha: 0.9
+  tau: 1.0e-4
+  layer_names: ["avgpool_tap"]
+
+optimizer:
+  name: sgd
+  lr: 0.03
+  momentum: 0.9
+  weight_decay: 5.0e-4
+
+training:
+  epochs_per_task: 2
+  device: cuda
+  log_every: 500

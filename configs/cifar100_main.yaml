@@ -1,0 +1,73 @@
+# =====================================================================
+# Phase-2 main-table experiment: Class-IL Split-CIFAR-100, ResNet-18.
+#
+# Architecture & schedule (Mammoth-style defaults):
+#   * ResNet-18 (CIFAR variant, 32x32 input, ~11M params)
+#   * 10 tasks * 10 classes (sorted class order)
+#   * batch_size 32
+#   * 50 epochs per task
+#   * SGD lr=0.03, momentum=0.9, weight_decay=5e-4 (Buzzega 2020 Table 6)
+#   * Buffer size 500 for ER / DER++ / A-GEM
+#   * EWC lambda=10 (online EWC, gamma=1.0)
+#   * DER++ alpha=0.5, beta=0.5
+#
+# Methods (selected at runtime via --method):
+#   Baselines:  erm, ewc, er, derpp, agem  (5)
+#   PA-CL:      pacl, pacl_er, pacl_derpp   (3)
+#   Joint upper bound: handled by separate cifar100_joint.yaml
+#
+# Seeds: 0..4 (5 seeds for tight error bars)
+# Wall time estimate (4090): ~10 min per ERM seed, ~20 min per ER seed,
+# ~25 min per PA-CL seed * 50 epochs * 10 tasks. Total ~6-8h for 8
+# methods * 5 seeds = 40 cells. Manageable in a 2-day overnight window.
+# =====================================================================
+
+experiment_name: cifar100_main
+out_dir: runbook/cifar100_main
+
+dataset:
+  name: split_cifar100
+  root: ./data
+  n_tasks: 10
+  classes_per_task: 10
+  batch_size: 32
+  seed: 0
+  download: false
+
+model:
+  name: cifar_resnet18
+  num_classes: 100
+  base_width: 64
+
+baseline: erm                  # overridden by --method
+baseline_kwargs:
+  buffer_size: 500
+  buffer_batch: 32
+  alpha: 0.5                   # DER++ distillation weight
+  beta: 0.5                    # DER++ ++ CE weight
+  lambda_ewc: 10.0             # EWC penalty
+  fisher_samples: 1000         # EWC Fisher budget per task
+  num_classes: 100
+  input_shape: [3, 32, 32]
+
+pacl:
+  enabled: false               # overridden by --method
+  lam: 0.1
+  beta: 0.99
+  alpha: 0.9
+  tau: 1.0e-4
+  # PA-CL hooks the post-avgpool feature (the representation the
+  # classifier directly consumes). Adding deeper conv blocks is an
+  # ablation, not the default.
+  layer_names: ["avgpool_tap"]
+
+optimizer:
+  name: sgd
+  lr: 0.03
+  momentum: 0.9
+  weight_decay: 5.0e-4
+
+training:
+  epochs_per_task: 20
+  device: cuda
+  log_every: 200

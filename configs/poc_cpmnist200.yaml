@@ -1,0 +1,70 @@
+# =====================================================================
+# PoC consolidated experiment: Continual-Permuted-MNIST, 200 tasks
+# following the streaming-style short-task protocol of Elsayed &
+# Mahmood (2024, arXiv:2404.00781) that exposes loss-of-plasticity
+# within ~200 tasks.
+#
+# Architecture & schedule:
+#   * MLP 300-150 (Elsayed-Mahmood Appendix I.2)
+#   * 5000 samples per task * 200 tasks = 1M samples total
+#   * batch_size=16 (faster than the published bs=1 streaming, but
+#     still small enough that the LoP signal appears clearly)
+#   * SGD lr=0.01 (Elsayed-Mahmood Table 3 best SGD setting)
+#
+# Methods (selected at runtime via --method): erm, cbp, pacl.
+# Seeds: 0, 1, 2.
+# Estimated wall time (4090): ~2 min per method per seed, ~20 min total
+# for the 9 cells + aggregator.
+#
+# Gate (strict, locked by user):
+#   PASS iff ALL hold:
+#     (G1) erank(PA-CL, last)/erank(ERM, last) on penultimate >= 1.5
+#     (G2) ERM plasticity drop >= 5 pp AND PA-CL drop <= 0.5 * ERM drop
+#     (G3) ACC(PA-CL) - ACC(ERM) >= 1.5 pp with no overlap in mean+-std
+#     (G4) BWT(PA-CL) >= BWT(ERM) - 2 pp
+#   PARTIAL: ACC gain in [0, 1.5 pp)  -> revise lam / probe layers
+#   FAIL:    ACC gain < 0 OR rank ratio < 1.2  -> pivot (F1/F2/F6)
+# =====================================================================
+
+experiment_name: poc_cpmnist200
+out_dir: runbook/poc_cpmnist200
+
+dataset:
+  name: permuted_mnist
+  root: ./data
+  n_tasks: 200
+  batch_size: 16
+  samples_per_task: 5000
+  seed: 0                  # overridden via --seed
+  num_workers: 0
+  download: false          # MNIST already cached on the lab
+
+model:
+  name: mlp
+  in_dim: 784
+  hidden_dims: [300, 150]
+  out_dim: 10
+  bias: true
+  act: relu
+
+baseline: erm              # overridden by --method
+baseline_kwargs: {}
+
+pacl:
+  enabled: false           # overridden by --method
+  lam: 0.1
+  beta: 0.99
+  alpha: 0.9
+  tau: 1.0e-4
+  layer_names: ["hidden.h1", "hidden.h2"]
+
+optimizer:
+  name: sgd
+  lr: 0.01
+  momentum: 0.0            # Elsayed-Mahmood use vanilla SGD without momentum
+  weight_decay: 0.0
+
+training:
+  epochs_per_task: 1
+  device: cuda
+  log_every: 1000          # quiet for the long 9-cell sweep
