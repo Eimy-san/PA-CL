@@ -4,10 +4,6 @@ Reference implementation, baselines, and experiment scripts for the paper:
 
 **"PA-CL: Plasticity-Aware Continual Learning via Effective-Rank Regularization"**
 
-*Guoping You, Yudan Hu, Jingze Li*
-
-Submitted to *Expert Systems with Applications* (Elsevier).
-
 ## Abstract
 
 Continual-learning agents that optimize solely for stability often suffer progressive loss of representational plasticity. We propose **PA-CL**, a lightweight plug-in that (1) enforces a one-sided effective-rank floor on hidden activations and (2) projects the rank gradient onto the Fisher-null subspace so that stability is preserved without explicit task boundaries. On Split-CIFAR-100, PA-CL improves average accuracy by +3.12 pp over the ER baseline and maintains 2.06× higher effective rank than ERM on Continual-Permuted-MNIST-200.
@@ -70,19 +66,6 @@ All seeds, hyperparameters, and dataset splits are committed in `configs/`. See 
 
 Tested on a single NVIDIA A100-40GB with PyTorch 2.5.1 / Python 3.12 / CUDA 12.4.
 
-## Citation
-
-If you find this work useful, please cite:
-
-```bibtex
-@article{you2026pacl,
-  title   = {{PA-CL}: Plasticity-Aware Continual Learning via Effective-Rank Regularization},
-  author  = {You, Guoping and Hu, Yudan and Li, Jingze},
-  journal = {Expert Systems with Applications},
-  year    = {2026},
-  note    = {Under review}
-}
-```
 
 ## License
 
