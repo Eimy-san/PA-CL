@@ -14,6 +14,7 @@ Artifacts written to <out_dir>/<method>/seed<seed>/:
     train_loss.npy   length-T array, mean task-loss per task
     config.yaml      copy of the resolved config actually used
 """
+
 from __future__ import annotations
 
 import argparse
@@ -38,25 +39,34 @@ from pa_cl.baselines import build_baseline
 from pa_cl.pacl import PACL, PACLConfig
 from pa_cl.trainer import train_continual
 from pa_cl.metrics import (
-    acc_sparse, bwt_sparse, plasticity_decay, per_task_forgetting_sparse
+    acc_sparse,
+    bwt_sparse,
+    plasticity_decay,
+    per_task_forgetting_sparse,
 )
 
 
 METHOD_REGISTRY = {
     # method_name -> (baseline_name, use_pacl)
-    "erm":         ("erm",   False),
-    "cbp":         ("cbp",   False),
-    "er":          ("er",    False),
-    "derpp":       ("derpp", False),
-    "ewc":         ("ewc",   False),
-    "agem":        ("agem",  False),
-    "pacl":        ("erm",   True),    # PA-CL on top of ERM by default
-    "pacl_erm":    ("erm",   True),
-    "pacl_cbp":    ("cbp",   True),
-    "pacl_er":     ("er",    True),
-    "pacl_derpp":  ("derpp", True),
-    "pacl_ewc":    ("ewc",   True),
-    "pacl_agem":   ("agem",  True),
+    "erm": ("erm", False),
+    "cbp": ("cbp", False),
+    "er": ("er", False),
+    "derpp": ("derpp", False),
+    "ewc": ("ewc", False),
+    "agem": ("agem", False),
+    "er_ace": ("er_ace", False),
+    "cls_er": ("cls_er", False),
+    "xder": ("xder", False),
+    "pacl": ("erm", True),  # PA-CL on top of ERM by default
+    "pacl_erm": ("erm", True),
+    "pacl_cbp": ("cbp", True),
+    "pacl_er": ("er", True),
+    "pacl_derpp": ("derpp", True),
+    "pacl_ewc": ("ewc", True),
+    "pacl_agem": ("agem", True),
+    "pacl_er_ace": ("er_ace", True),
+    "pacl_cls_er": ("cls_er", True),
+    "pacl_xder": ("xder", True),
 }
 
 
@@ -74,22 +84,46 @@ def resolve_method(cfg: dict, method: str) -> dict:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", required=True, type=Path)
-    ap.add_argument("--method", default=None,
-                    help="One of erm, cbp, pacl, pacl_erm, pacl_cbp.")
-    ap.add_argument("--seed", type=int, default=None,
-                    help="Override seed from config.")
-    ap.add_argument("--out_dir", type=Path, default=None,
-                    help="Override out_dir from config.")
-    ap.add_argument("--lam", type=float, default=None,
-                    help="Override PA-CL lambda from config (for sweeps).")
-    ap.add_argument("--disable_projection", action="store_true",
-                    help="Disable the Fisher-null projection (Sec 6.2 "
-                         "ablation: rank gradient applied isotropically).")
-    ap.add_argument("--tag", type=str, default=None,
-                    help="Override the method/leaf subdir name "
-                         "(useful when sweeping a single method across "
-                         "hyperparameters that all collapse to the same "
-                         "method registry entry).")
+    ap.add_argument(
+        "--method", default=None, help="One of erm, cbp, pacl, pacl_erm, pacl_cbp."
+    )
+    ap.add_argument("--seed", type=int, default=None, help="Override seed from config.")
+    ap.add_argument(
+        "--out_dir", type=Path, default=None, help="Override out_dir from config."
+    )
+    ap.add_argument(
+        "--lam",
+        type=float,
+        default=None,
+        help="Override PA-CL lambda from config (for sweeps).",
+    )
+    ap.add_argument(
+        "--disable_projection",
+        action="store_true",
+        help="Disable the Fisher-weighted attenuation (Sec 6.2 "
+        "ablation: rank gradient applied isotropically).",
+    )
+    ap.add_argument(
+        "--tag",
+        type=str,
+        default=None,
+        help="Override the method/leaf subdir name "
+        "(useful when sweeping a single method across "
+        "hyperparameters that all collapse to the same "
+        "method registry entry).",
+    )
+    ap.add_argument(
+        "--buffer_size",
+        type=int,
+        default=None,
+        help="Override buffer_size in baseline_kwargs (for buffer-sweep ablation).",
+    )
+    ap.add_argument(
+        "--layer_names",
+        type=str,
+        default=None,
+        help="Override pacl.layer_names (comma-separated, for layer-selection ablation).",
+    )
     args = ap.parse_args()
 
     with open(args.config) as f:
@@ -106,6 +140,12 @@ def main() -> int:
         cfg.setdefault("pacl", {})["lam"] = float(args.lam)
     if args.disable_projection:
         cfg.setdefault("pacl", {})["disable_projection"] = True
+    if args.buffer_size is not None:
+        cfg.setdefault("baseline_kwargs", {})["buffer_size"] = int(args.buffer_size)
+    if args.layer_names is not None:
+        cfg.setdefault("pacl", {})["layer_names"] = [
+            s.strip() for s in args.layer_names.split(",")
+        ]
 
     if args.seed is not None:
         cfg["dataset"]["seed"] = args.seed
@@ -151,8 +191,7 @@ def main() -> int:
                 beta=float(pacl_cfg.get("beta", 0.99)),
                 alpha=float(pacl_cfg.get("alpha", 0.9)),
                 tau=float(pacl_cfg.get("tau", 1e-4)),
-                disable_projection=bool(pacl_cfg.get("disable_projection",
-                                                     False)),
+                disable_projection=bool(pacl_cfg.get("disable_projection", False)),
             ),
         )
         print(f"[run] PACL on layers {pacl_cfg['layer_names']}")
@@ -196,19 +235,25 @@ def main() -> int:
         "seed": seed,
         "ACC": acc_sparse(result.final_row),
         "BWT": bwt_sparse(result.diag_acc, result.final_row),
-        "mean_plasticity_first": float(np.mean(result.diag_acc[:20])
-                                       if len(result.diag_acc) >= 20 else
-                                       np.mean(result.diag_acc)),
-        "mean_plasticity_last": float(np.mean(result.diag_acc[-20:])
-                                      if len(result.diag_acc) >= 20 else
-                                      np.mean(result.diag_acc)),
+        "mean_plasticity_first": float(
+            np.mean(result.diag_acc[:20])
+            if len(result.diag_acc) >= 20
+            else np.mean(result.diag_acc)
+        ),
+        "mean_plasticity_last": float(
+            np.mean(result.diag_acc[-20:])
+            if len(result.diag_acc) >= 20
+            else np.mean(result.diag_acc)
+        ),
         "plasticity_drop": (
             float(np.mean(result.diag_acc[:20]) - np.mean(result.diag_acc[-20:]))
-            if len(result.diag_acc) >= 20 else 0.0
+            if len(result.diag_acc) >= 20
+            else 0.0
         ),
         "per_task_forgetting_mean": (
-            float(np.mean(per_task_forgetting_sparse(
-                result.diag_acc, result.final_row)))
+            float(
+                np.mean(per_task_forgetting_sparse(result.diag_acc, result.final_row))
+            )
         ),
         "seconds": result.seconds,
         "wall_seconds": time.time() - t_start,
@@ -229,16 +274,23 @@ def main() -> int:
     # ---------- Persist ----------
     np.save(out_dir / "diag_acc.npy", np.asarray(result.diag_acc, dtype=np.float32))
     np.save(out_dir / "final_row.npy", np.asarray(result.final_row, dtype=np.float32))
-    np.save(out_dir / "train_loss.npy",
-            np.asarray(result.train_loss_traj, dtype=np.float32))
+    np.save(
+        out_dir / "train_loss.npy", np.asarray(result.train_loss_traj, dtype=np.float32)
+    )
     if result.rank_traj:
         with open(out_dir / "rank_traj.json", "w") as f:
-            json.dump([{k: float(v) for k, v in d.items()}
-                       for d in result.rank_traj], f, indent=2)
+            json.dump(
+                [{k: float(v) for k, v in d.items()} for d in result.rank_traj],
+                f,
+                indent=2,
+            )
     if result.rank_floor_traj:
         with open(out_dir / "rank_floor_traj.json", "w") as f:
-            json.dump([{k: float(v) for k, v in d.items()}
-                       for d in result.rank_floor_traj], f, indent=2)
+            json.dump(
+                [{k: float(v) for k, v in d.items()} for d in result.rank_floor_traj],
+                f,
+                indent=2,
+            )
     with open(out_dir / "summary.json", "w") as f:
         json.dump(summary, f, indent=2)
     with open(out_dir / "config.yaml", "w") as f:
