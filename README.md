@@ -11,11 +11,11 @@ review.*
 
 In sequential learning, the hidden representations of a deep network can
 lose their effective rank: the singular spectrum of layer activations
-concentrates onto a few dominant directions until the layer no longer
-carries the capacity to represent anything new. Spectral collapse offers
-a single measurable window onto the two classical failures of continual
-learning, catastrophic forgetting and loss of plasticity, and this paper
-turns it into a mechanism. PA-CL attaches to any base continual learner
+concentrates onto a few dominant directions until the layer can no
+longer represent anything new. Spectral collapse is the measurable
+signature of loss of plasticity, one of the two classical failures of
+continual learning - and this paper turns its measurement into a
+mechanism. PA-CL attaches to any base continual learner
 as a plug-in that holds the effective rank of monitored features at a
 running floor: a smooth one-sided hinge supplies plasticity pressure
 exactly when the representation runs low, and a Fisher-weighted
