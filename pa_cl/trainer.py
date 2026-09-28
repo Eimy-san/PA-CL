@@ -10,7 +10,7 @@ For both, the same training loop applies:
     for epoch in 1..E:
       for batch in train_iter(t):
         compute task loss, take a step
-        if PA-CL: combined-gradient step with Fisher-null projection
+        if PA-CL: combined-gradient step with Fisher-weighted attenuation
         if base.post_step exists: call it (CBP)
     diag_acc[t] = test accuracy on task t   (plasticity signal)
     rank_traj[t] = per-layer effective rank on a probe batch
@@ -20,6 +20,7 @@ For both, the same training loop applies:
 This O(T) eval schedule is the standard CPMNIST protocol used by
 Dohare et al. (2024 Nature) for long-horizon runs.
 """
+
 from __future__ import annotations
 
 import time
@@ -34,11 +35,11 @@ from .metrics import effective_rank_probe
 
 @dataclass
 class TrainerResult:
-    diag_acc: list = field(default_factory=list)        # length T, plasticity signal
-    final_row: list = field(default_factory=list)       # R[-1, :], length T
-    rank_traj: list = field(default_factory=list)       # length T, dict layer->float
-    rank_floor_traj: list = field(default_factory=list) # length T, only for PA-CL
-    train_loss_traj: list = field(default_factory=list) # mean task-loss per task
+    diag_acc: list = field(default_factory=list)  # length T, plasticity signal
+    final_row: list = field(default_factory=list)  # R[-1, :], length T
+    rank_traj: list = field(default_factory=list)  # length T, dict layer->float
+    rank_floor_traj: list = field(default_factory=list)  # length T, only for PA-CL
+    train_loss_traj: list = field(default_factory=list)  # mean task-loss per task
     seconds: float = 0.0
 
 
@@ -46,6 +47,7 @@ class TrainerResult:
 # Unified iter interface: tasks support .train_iter / .test_iter /
 # .probe_batch; DataLoaders need an adapter.
 # ---------------------------------------------------------------
+
 
 def _train_iter(task_or_loader, batch_size: int):
     if hasattr(task_or_loader, "train_iter"):
@@ -67,7 +69,9 @@ def _probe_batch(task_or_loader, device: torch.device, n: int = 512):
     xs, ys = [], []
     have = 0
     for x, y in task_or_loader:
-        xs.append(x); ys.append(y); have += x.shape[0]
+        xs.append(x)
+        ys.append(y)
+        have += x.shape[0]
         if have >= n:
             break
     x = torch.cat(xs, dim=0)[:n].to(device)
@@ -75,8 +79,13 @@ def _probe_batch(task_or_loader, device: torch.device, n: int = 512):
     return x, y
 
 
-def evaluate(model: nn.Module, task_or_loader, device: torch.device,
-             batch_size: int = 2048, max_batches: int = -1) -> float:
+def evaluate(
+    model: nn.Module,
+    task_or_loader,
+    device: torch.device,
+    batch_size: int = 2048,
+    max_batches: int = -1,
+) -> float:
     model.eval()
     correct, total = 0, 0
     with torch.no_grad():
@@ -94,8 +103,8 @@ def evaluate(model: nn.Module, task_or_loader, device: torch.device,
 def train_continual(
     base,
     pacl,
-    train_loaders,        # may be list[PermutedTask] OR list[DataLoader]
-    test_loaders,         # same
+    train_loaders,  # may be list[PermutedTask] OR list[DataLoader]
+    test_loaders,  # same
     optimizer,
     device: torch.device,
     epochs_per_task: int = 1,
@@ -121,10 +130,13 @@ def train_continual(
         for name in layers_for_probe:
             if name not in modules:
                 raise KeyError(f"probe layer '{name}' not in model")
+
             def _make(nm):
                 def _h(_m, _i, out):
                     probe_cache[nm] = out
+
                 return _h
+
             probe_handles.append(modules[name].register_forward_hook(_make(name)))
 
     diag_acc: List[float] = []
@@ -161,8 +173,7 @@ def train_continual(
                     # loss BEFORE backpropping, then backward twice on
                     # the retained graph.
                     loss_rank = pacl.rank_loss()
-                    has_rank = (loss_rank.requires_grad
-                                and float(loss_rank.detach()) > 0)
+                    has_rank = loss_rank.requires_grad and float(loss_rank.detach()) > 0
                     if has_rank:
                         loss_task.backward(retain_graph=True)
                     else:
@@ -199,7 +210,7 @@ def train_continual(
 
                 if log_every > 0 and it % log_every == 0:
                     print(
-                        f"[task {t+1}/{T} ep {ep+1}/{epochs_per_task} "
+                        f"[task {t + 1}/{T} ep {ep + 1}/{epochs_per_task} "
                         f"it {it}] loss_task={float(loss_task.detach()):.4f}",
                         flush=True,
                     )
@@ -217,6 +228,7 @@ def train_continual(
             if pacl is not None:
                 row = {}
                 from .pacl import effective_rank as _erank
+
                 for name, H in pacl._cache.items():
                     row[name] = float(_erank(H).detach().cpu())
                 pacl._cache.clear()
@@ -234,6 +246,7 @@ def train_continual(
         # builder so they can pull batches without consuming the trainer's.
         def _new_iter():
             return _train_iter(task, batch_size)
+
         try:
             base.end_of_task(train_iter_fn=_new_iter, device=device)
         except TypeError:
@@ -243,9 +256,9 @@ def train_continual(
             # Fisher update needs an iterable of (x, y). Use the train iter.
             pacl.update_fisher(_train_iter(task, batch_size), device)
         print(
-            f"[task {t+1} done] diag_acc={diag_acc[-1]:.4f} "
+            f"[task {t + 1} done] diag_acc={diag_acc[-1]:.4f} "
             f"loss={train_loss_traj[-1]:.4f}  "
-            f"elapsed={time.time()-t0:.1f}s",
+            f"elapsed={time.time() - t0:.1f}s",
             flush=True,
         )
 
