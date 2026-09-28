@@ -1,5 +1,5 @@
 # =====================================================================
-# Ablation: Layer selection on Split-CIFAR-100 / ResNet-18.
+# Ablation 3: Layer selection on Split-CIFAR-100 / ResNet-18.
 #
 # Method: pacl_er (PA-CL stacked on Experience Replay).
 # Sweep: layer_names in 3 configs:
@@ -8,6 +8,7 @@
 #   {stem_act, layer1_tap, layer2_tap, layer3_tap, layer4_tap, avgpool_tap}  -- all
 # Seeds: 0..2 (3 seeds; ablation is exploratory).
 #
+# Tests reviewer question: does monitoring more layers help?
 # Output: runbook/cifar100_layers/<tag>/seed<seed>/...
 # =====================================================================
 

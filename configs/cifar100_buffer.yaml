@@ -1,11 +1,13 @@
 # =====================================================================
-# Ablation: Replay-buffer scaling on Split-CIFAR-100 / ResNet-18.
+# Ablation 2: Replay-buffer scaling on Split-CIFAR-100 / ResNet-18.
 #
 # Method: pacl_er (PA-CL stacked on Experience Replay).
 # Sweep: buffer_size in {0, 100, 200, 500, 2000}.
 # Seeds: 0..4 (5 seeds).
 #
 # buffer_size=0 degenerates to PA-CL alone (no replay).
+# Tests reviewer prediction: PA-CL contributes more at small buffer.
+#
 # Output: runbook/cifar100_buffer/buf_<value>/seed<seed>/...
 # =====================================================================
 

@@ -1,5 +1,5 @@
 # =====================================================================
-# Ablation: Fisher-weighted attenuation on/off, PA-CL+ER, Split-CIFAR-100.
+# Ablation 2: Fisher-weighted attenuation on/off, PA-CL+ER, Split-CIFAR-100.
 #
 # Two arms:
 #   pacl_er_proj_on  : standard PA-CL+ER (Fisher-weighted attenuation applied)
