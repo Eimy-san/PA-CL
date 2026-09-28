@@ -1,4 +1,5 @@
 """Baseline continual learners."""
+
 import inspect
 
 from .erm import ERM
@@ -7,17 +8,39 @@ from .er import ER
 from .der import DERpp
 from .ewc import EWC
 from .agem import AGEM
+from .er_ace import ERAce
+from .cls_er import CLSER
+from .xder import XDER
 
-__all__ = ["ERM", "CBP", "ER", "DERpp", "EWC", "AGEM", "build_baseline"]
+__all__ = [
+    "ERM",
+    "CBP",
+    "ER",
+    "DERpp",
+    "EWC",
+    "AGEM",
+    "ERAce",
+    "CLSER",
+    "XDER",
+    "build_baseline",
+]
 
 
 _BASELINES = {
     "erm": ERM,
     "cbp": CBP,
     "er": ER,
-    "der": DERpp, "derpp": DERpp, "der++": DERpp,
+    "der": DERpp,
+    "derpp": DERpp,
+    "der++": DERpp,
     "ewc": EWC,
     "agem": AGEM,
+    "er_ace": ERAce,
+    "er-ace": ERAce,
+    "cls_er": CLSER,
+    "cls-er": CLSER,
+    "xder": XDER,
+    "x-der": XDER,
 }
 
 
