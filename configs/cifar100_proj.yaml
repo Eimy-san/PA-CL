@@ -1,8 +1,8 @@
 # =====================================================================
-# Ablation 2: Fisher-null projection on/off, PA-CL+ER, Split-CIFAR-100.
+# Ablation: Fisher-weighted attenuation on/off, PA-CL+ER, Split-CIFAR-100.
 #
 # Two arms:
-#   pacl_er_proj_on  : standard PA-CL+ER (Fisher-null projection applied)
+#   pacl_er_proj_on  : standard PA-CL+ER (Fisher-weighted attenuation applied)
 #   pacl_er_proj_off : PA-CL+ER with isotropic rank-gradient update
 #                      (cfg.pacl.disable_projection = True)
 #
