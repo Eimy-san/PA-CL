@@ -1,24 +1,25 @@
 # =====================================================================
-# Main-table benchmark: Class-IL Split-ImageNet-R, ResNet-18.
+# Phase-2 4th benchmark: Class-IL Split-ImageNet-R, ResNet-18.
 #
 # ImageNet-R (Hendrycks et al., 2021) contains artistic renditions of
 # 200 ImageNet classes, testing robustness to domain shift. Images are
-# resized to 64x64 and split 80/20 per class for train/test (seeded).
+# resized to 64x64 and split 80/20 per class for train/test.
 #
 # Architecture & schedule:
 #   * ResNet-18 (CIFAR variant, 64x64 input, ~11M params)
 #   * 10 tasks * 20 classes (sorted class order)
 #   * batch_size 64
-#   * 30 epochs per task (larger domain shift)
+#   * 30 epochs per task
 #   * SGD lr=0.03, momentum=0.9, weight_decay=5e-4
 #   * Buffer size 500 for replay methods
 #
 # Methods (selected at runtime via --method):
 #   Baselines:  erm, ewc, er, derpp, agem, er_ace, cls_er, xder  (8)
-#   PA-CL:      pacl, pacl_er, pacl_derpp, pacl_er_ace, pacl_cls_er,
-#               pacl_xder                                          (6)
+#   PA-CL:      pacl, pacl_er, pacl_derpp                           (3)
 #
 # Seeds: 0..4 (5 seeds)
+# Wall time estimate (4090): ~20-30 min per seed * 30 epochs * 10 tasks.
+# Total ~10-12h for 14 methods * 5 seeds = 70 cells (staggered).
 # =====================================================================
 
 experiment_name: imagenet_r_main

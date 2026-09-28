@@ -1,24 +1,26 @@
 # =====================================================================
-# Main-table experiment: Class-IL Split-Tiny-ImageNet, ResNet-18.
+# Phase-B main-table experiment: Class-IL Split-Tiny-ImageNet, ResNet-18.
 #
 # Tiny-ImageNet: 200 classes, 64x64 images, 500 train / 50 val per class.
 # 10 tasks * 20 classes (sorted class order).
 # ResNet-18 (CIFAR variant, 64x64 input, ~11M params).
 #
-# Optimization:
+# Optimization (follows Mammoth Split-TinyImageNet defaults):
 #   * SGD lr=0.03, momentum=0.9, weight_decay=5e-4
-#   * 30 epochs per task
+#   * 30 epochs per task (Tiny-ImageNet is harder than CIFAR-100)
 #   * batch_size 64
 #   * Buffer size 500 for ER / DER++ / A-GEM
 #   * EWC lambda=10 (online EWC, gamma=1.0)
 #   * DER++ alpha=0.5, beta=0.5
 #
 # Methods (selected at runtime via --method):
-#   Baselines:  erm, ewc, er, derpp, agem, er_ace, cls_er, xder  (8)
-#   PA-CL:      pacl, pacl_er, pacl_derpp, pacl_er_ace, pacl_cls_er,
-#               pacl_xder                                          (6)
+#   Baselines:  erm, ewc, er, derpp, agem  (5)
+#   PA-CL:      pacl, pacl_er, pacl_derpp   (3)
 #
 # Seeds: 0..4 (5 seeds)
+# Wall time estimate (A100): ~15 min per ERM seed, ~30 min per ER seed,
+# ~40 min per PA-CL seed * 30 epochs * 10 tasks. Total ~12-16h for 8
+# methods * 5 seeds = 40 cells. Run overnight.
 # =====================================================================
 
 experiment_name: tinyimagenet_main
