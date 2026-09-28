@@ -4,14 +4,14 @@ The PACL class is a *wrapper* around any base continual learner. It adds:
   1. an effective-rank floor tracked per regularized layer
   2. a one-sided squared-hinge effective-rank loss
   3. a diagonal Fisher accumulator (single, exponentially weighted)
-  4. a Fisher-null-space projection of the rank-loss gradient
+  4. a Fisher-weighted attenuation of the rank-loss gradient
 
 The class exposes:
   - register_hooks(model, layer_names): attach forward hooks to capture
     activations from the regularized layers
   - rank_loss(): compute the per-step rank loss from the captured
     activations (called before backward)
-  - project_rank_grad(model): apply Fisher-null projection to the
+  - project_rank_grad(model): apply Fisher-weighted attenuation to the
     rank-loss gradient that is currently stored in model.parameters().grad
   - end_of_task(model, loader, device): update Fisher accumulator and
     rank floors at the end of each task
@@ -19,6 +19,7 @@ The class exposes:
 This module is deliberately self-contained and dependency-light:
 only torch + numpy.
 """
+
 from __future__ import annotations
 
 import math
@@ -33,6 +34,7 @@ import torch.nn.functional as F
 # -----------------------------------------------------------------
 # Effective rank
 # -----------------------------------------------------------------
+
 
 def effective_rank(H: torch.Tensor, eps: float = 1e-12) -> torch.Tensor:
     """Effective rank of a (B, D) activation matrix.
@@ -59,17 +61,19 @@ def effective_rank(H: torch.Tensor, eps: float = 1e-12) -> torch.Tensor:
 # PA-CL state container
 # -----------------------------------------------------------------
 
+
 @dataclass
 class PACLConfig:
     """Hyperparameters with defaults from paper Sec. 4."""
-    lam: float = 0.1                    # rank-loss weight  (lambda)
-    beta: float = 0.99                  # EMA for rank floor update
-    alpha: float = 0.9                  # Fisher accumulator decay
-    tau: float = 1e-4                   # Fisher-null projection floor
+
+    lam: float = 0.1  # rank-loss weight  (lambda)
+    beta: float = 0.99  # EMA for rank floor update
+    alpha: float = 0.9  # Fisher accumulator decay
+    tau: float = 1e-4  # Fisher-weighted attenuation threshold
     layer_weights: Optional[Dict[str, float]] = None  # per-layer w_l
     # Ablation flag: when True, project_rank_grad is a no-op (returns
     # the rank gradient unchanged). Used in Section 6.2 to isolate the
-    # contribution of the Fisher-null projection to BWT.
+    # contribution of the Fisher-weighted attenuation to BWT.
     disable_projection: bool = False
 
 
@@ -96,7 +100,8 @@ class PACL:
         self._ema_rank: Dict[str, float] = {n: 0.0 for n in self.layer_names}
         # Fisher accumulator: parameter name -> Tensor
         self.fisher: Dict[str, torch.Tensor] = {
-            n: torch.zeros_like(p) for n, p in model.named_parameters()
+            n: torch.zeros_like(p)
+            for n, p in model.named_parameters()
             if p.requires_grad
         }
         self._hook_handles: List[torch.utils.hooks.RemovableHandle] = []
@@ -120,6 +125,7 @@ class PACL:
             if isinstance(out, tuple):
                 out = out[0]
             self._cache[name] = out
+
         return _hook
 
     def detach_hooks(self) -> None:
@@ -144,14 +150,13 @@ class PACL:
             # Track EMA of the *un-thresholded* rank for floor updates.
             r = float(rho.detach().cpu())
             self._ema_rank[name] = (
-                self.cfg.beta * self._ema_rank[name]
-                + (1.0 - self.cfg.beta) * r
+                self.cfg.beta * self._ema_rank[name] + (1.0 - self.cfg.beta) * r
             )
         # Clear cache so hooks repopulate next forward.
         self._cache.clear()
         return loss
 
-    # ----- Fisher-null projection -----
+    # ----- Fisher-weighted attenuation -----
 
     def project_rank_grad(
         self,
@@ -162,7 +167,7 @@ class PACL:
         Operates per-parameter, element-wise. If
         `self.cfg.disable_projection` is True, returns the rank
         gradient unchanged (Section 6.2 ablation: isolates the
-        contribution of the Fisher-null projection to BWT).
+        contribution of the Fisher-weighted attenuation to BWT).
         """
         if self.cfg.disable_projection:
             return dict(rank_grads)
@@ -192,15 +197,18 @@ class PACL:
     ) -> None:
         """Update the running diagonal Fisher: F_t = alpha * F_{t-1} + F_hat_t.
 
-        F_hat_t is estimated by squaring the per-sample gradient of
+        F_hat_t is estimated by squaring the batch-mean gradient of
         log p(y|x) on up to `n_samples` examples drawn from `loader`.
         """
         self.model.eval()
         for n, _ in self.model.named_parameters():
             if n in self.fisher:
                 self.fisher[n].mul_(self.cfg.alpha)
-        fisher_accum = {n: torch.zeros_like(p) for n, p in
-                        self.model.named_parameters() if p.requires_grad}
+        fisher_accum = {
+            n: torch.zeros_like(p)
+            for n, p in self.model.named_parameters()
+            if p.requires_grad
+        }
         seen = 0
         n_batches = 0
         last_batch_size = 1  # safe default for the denominator
