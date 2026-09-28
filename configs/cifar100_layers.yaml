@@ -1,7 +1,7 @@
 # =====================================================================
 # Ablation 3: Layer selection on Split-CIFAR-100 / ResNet-18.
 #
-# Method: pacl_er (PA-CL stacked on Experience Replay).
+# Method: pacl_er (PA-CL stacked on ER).
 # Sweep: layer_names in 3 configs:
 #   {avgpool_tap}              -- penultimate only (default)
 #   {layer3_tap, layer4_tap, avgpool_tap}  -- last 3 conv stages
