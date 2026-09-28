@@ -1,0 +1,70 @@
+# =====================================================================
+# Main-table experiment: Class-IL Split-Tiny-ImageNet, ResNet-18.
+#
+# Tiny-ImageNet: 200 classes, 64x64 images, 500 train / 50 val per class.
+# 10 tasks * 20 classes (sorted class order).
+# ResNet-18 (CIFAR variant, 64x64 input, ~11M params).
+#
+# Optimization:
+#   * SGD lr=0.03, momentum=0.9, weight_decay=5e-4
+#   * 30 epochs per task
+#   * batch_size 64
+#   * Buffer size 500 for ER / DER++ / A-GEM
+#   * EWC lambda=10 (online EWC, gamma=1.0)
+#   * DER++ alpha=0.5, beta=0.5
+#
+# Methods (selected at runtime via --method):
+#   Baselines:  erm, ewc, er, derpp, agem, er_ace, cls_er, xder  (8)
+#   PA-CL:      pacl, pacl_er, pacl_derpp, pacl_er_ace, pacl_cls_er,
+#               pacl_xder                                          (6)
+#
+# Seeds: 0..4 (5 seeds)
+# =====================================================================
+
+experiment_name: tinyimagenet_main
+out_dir: runbook/tinyimagenet_main
+
+dataset:
+  name: split_tinyimagenet
+  root: ./data
+  n_tasks: 10
+  classes_per_task: 20
+  batch_size: 64
+  seed: 0
+  download: true
+
+model:
+  name: tinyimagenet_resnet18
+  num_classes: 200
+  base_width: 64
+
+baseline: erm
+baseline_kwargs:
+  buffer_size: 500
+  buffer_batch: 64
+  alpha: 0.5
+  beta: 0.5
+  lambda_ewc: 10.0
+  fisher_samples: 1000
+  num_classes: 200
+  classes_per_task: 20
+  input_shape: [3, 64, 64]
+
+pacl:
+  enabled: false
+  lam: 0.1
+  beta: 0.99
+  alpha: 0.9
+  tau: 1.0e-4
+  layer_names: ["avgpool_tap"]
+
+optimizer:
+  name: sgd
+  lr: 0.03
+  momentum: 0.9
+  weight_decay: 5.0e-4
+
+training:
+  epochs_per_task: 30
+  device: cuda
+  log_every: 200

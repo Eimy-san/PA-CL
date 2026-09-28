@@ -1,0 +1,54 @@
+# =====================================================================
+# Ablation: Layer selection on Split-CIFAR-100 / ResNet-18.
+#
+# Method: pacl_er (PA-CL stacked on Experience Replay).
+# Sweep: layer_names in 3 configs:
+#   {avgpool_tap}              -- penultimate only (default)
+#   {layer3_tap, layer4_tap, avgpool_tap}  -- last 3 conv stages
+#   {stem_act, layer1_tap, layer2_tap, layer3_tap, layer4_tap, avgpool_tap}  -- all
+# Seeds: 0..2 (3 seeds; ablation is exploratory).
+#
+# Output: runbook/cifar100_layers/<tag>/seed<seed>/...
+# =====================================================================
+
+experiment_name: cifar100_layers
+out_dir: runbook/cifar100_layers
+
+dataset:
+  name: split_cifar100
+  root: ./data
+  n_tasks: 10
+  classes_per_task: 10
+  batch_size: 32
+  seed: 0
+  download: false
+
+model:
+  name: cifar_resnet18
+  num_classes: 100
+  base_width: 64
+
+baseline: er
+baseline_kwargs:
+  buffer_size: 500
+  buffer_batch: 32
+  alpha: 1.0
+
+pacl:
+  enabled: true
+  lam: 0.1
+  beta: 0.99
+  alpha: 0.9
+  tau: 1.0e-4
+  layer_names: ["avgpool_tap"]   # overridden per-cell via --layer_names
+
+optimizer:
+  name: sgd
+  lr: 0.03
+  momentum: 0.9
+  weight_decay: 5.0e-4
+
+training:
+  epochs_per_task: 20
+  device: cuda
+  log_every: 200
