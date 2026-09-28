@@ -1,7 +1,8 @@
-"""Shared matplotlib styling for all PA-CL paper figures.
+"""Publication-quality matplotlib style for PA-CL paper figures.
 
-Centralises colours, line styles, markers and figure sizes so that every
-figure in the paper uses a consistent visual language.
+Usage:
+    from figstyle import apply_style, METHOD_STYLE, FIG_WIDTH_1COL, FIG_WIDTH_2COL
+    apply_style()
 """
 
 from __future__ import annotations
@@ -10,15 +11,14 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
 
 
 FIG_WIDTH_1COL = 3.35
 FIG_WIDTH_2COL = 6.9
-BAND_ALPHA = 0.15
 
 _PALETTE = {
     "erm": "#6B7280",
-    "cbp": "#F59E0B",
     "ewc": "#7C3AED",
     "agem": "#D4A400",
     "er": "#2563EB",
@@ -32,66 +32,155 @@ _PALETTE = {
     "pacl_er_ace": "#0891B2",
     "pacl_cls_er": "#BE185D",
     "pacl_xder": "#92400E",
+    "cbp": "#F59E0B",
+}
+
+_LABELS = {
+    "erm": "ERM",
+    "ewc": "EWC",
+    "agem": "A-GEM",
+    "er": "ER",
+    "derpp": "DER++",
+    "er_ace": "ER-ACE",
+    "cls_er": "CLS-ER",
+    "xder": "X-DER",
+    "pacl": "PA-CL",
+    "pacl_er": "PA-CL+ER",
+    "pacl_derpp": "PA-CL+DER++",
+    "pacl_er_ace": "PA-CL+ER-ACE",
+    "pacl_cls_er": "PA-CL+CLS-ER",
+    "pacl_xder": "PA-CL+X-DER",
+    "cbp": "Cont. BP",
 }
 
 _MARKERS = {
-    "erm": "o", "cbp": "s", "ewc": "s", "agem": "D", "er": "o",
-    "derpp": "s", "er_ace": "H", "cls_er": "p", "xder": "X",
-    "pacl": "*", "pacl_er": "o", "pacl_derpp": "s", "pacl_er_ace": "H",
-    "pacl_cls_er": "p", "pacl_xder": "X",
+    "erm": "o",
+    "ewc": "s",
+    "agem": "D",
+    "er": "^",
+    "derpp": "v",
+    "er_ace": "h",
+    "cls_er": "p",
+    "xder": "X",
+    "pacl": "*",
+    "pacl_er": "^",
+    "pacl_derpp": "v",
+    "pacl_er_ace": "h",
+    "pacl_cls_er": "p",
+    "pacl_xder": "X",
+    "cbp": "P",
 }
 
 _LINESTYLES = {
-    "erm": "--", "cbp": "-", "ewc": ":", "agem": "--", "er": "-",
-    "derpp": "-", "er_ace": "-", "cls_er": "-", "xder": "-",
-    "pacl": "-", "pacl_er": "--", "pacl_derpp": "--", "pacl_er_ace": "--",
-    "pacl_cls_er": "--", "pacl_xder": "--",
+    "erm": "-",
+    "ewc": "-",
+    "agem": "-",
+    "er": "-",
+    "derpp": "-",
+    "er_ace": "-",
+    "cls_er": "-",
+    "xder": "-",
+    "pacl": "-",
+    "pacl_er": "--",
+    "pacl_derpp": "--",
+    "pacl_er_ace": "--",
+    "pacl_cls_er": "--",
+    "pacl_xder": "--",
+    "cbp": "-",
 }
 
-_LINewidths = {
-    "erm": 1.2, "cbp": 1.2, "ewc": 1.2, "agem": 1.2, "er": 1.4,
-    "derpp": 1.4, "er_ace": 1.4, "cls_er": 1.4, "xder": 1.4,
-    "pacl": 1.8, "pacl_er": 1.6, "pacl_derpp": 1.6, "pacl_er_ace": 1.6,
-    "pacl_cls_er": 1.6, "pacl_xder": 1.6,
+_METHOD_ORDER = [
+    "erm",
+    "cbp",
+    "ewc",
+    "agem",
+    "er",
+    "derpp",
+    "er_ace",
+    "cls_er",
+    "xder",
+    "pacl",
+    "pacl_er",
+    "pacl_derpp",
+    "pacl_er_ace",
+    "pacl_cls_er",
+    "pacl_xder",
+]
+
+Z_ORDER = {
+    "erm": 2,
+    "ewc": 2,
+    "agem": 2,
+    "er": 2,
+    "derpp": 2,
+    "er_ace": 2,
+    "cls_er": 2,
+    "xder": 2,
+    "pacl": 3,
+    "pacl_er": 3,
+    "pacl_derpp": 3,
+    "pacl_er_ace": 3,
+    "pacl_cls_er": 3,
+    "pacl_xder": 3,
+    "cbp": 2,
 }
 
-_ZORDER = {
-    "erm": 1, "cbp": 1, "ewc": 1, "agem": 1, "er": 2, "derpp": 2,
-    "er_ace": 2, "cls_er": 2, "xder": 2, "pacl": 3, "pacl_er": 3,
-    "pacl_derpp": 3, "pacl_er_ace": 3, "pacl_cls_er": 3, "pacl_xder": 3,
-}
+LW_BASELINE = 1.6
+LW_PACL = 2.2
+MARKER_SIZE = 4.5
+MARKER_SIZE_PACL = 6.0
+BAND_ALPHA = 0.15
+GRID_ALPHA = 0.25
+GRID_LS = "--"
+DPI = 300
 
 
-def apply_style() -> None:
+def apply_style():
     plt.rcParams.update(
         {
-            "figure.fallback_font_format": "pdf",
-            "font.family": "sans-serif",
-            "font.sans-serif": ["Times", "Arial", "DejaVu Sans"],
-            "text.usetex": False,
-            "font.size": 8,
-            "axes.labelsize": 8,
-            "axes.tick_label_size": 7.5,
-            "tick.fontsize": 7.5,
+            "font.family": "serif",
+            "font.size": 9,
+            "axes.labelsize": 10,
+            "axes.titlesize": 10,
+            "xtick.labelsize": 8.5,
+            "ytick.labelsize": 8.5,
             "legend.fontsize": 7.5,
-            "axes.titlesize": 9,
-            "axes.spines.top": False,
-            "axes.spines.right": False,
-            "axes.grid": False,
-            "tick.direction": "in",
-            "tick.style": "academic",
+            "legend.frameon": True,
+            "legend.framealpha": 0.9,
+            "legend.edgecolor": "#D1D5DB",
+            "legend.fancybox": False,
+            "legend.borderpad": 0.4,
+            "legend.handlelength": 2.0,
+            "legend.handletextpad": 0.5,
+            "legend.columnspacing": 1.0,
+            "axes.linewidth": 0.8,
+            "axes.edgecolor": "#374151",
+            "axes.grid": True,
+            "axes.axisbelow": True,
+            "grid.alpha": GRID_ALPHA,
+            "grid.linestyle": GRID_LS,
+            "grid.linewidth": 0.5,
+            "grid.color": "#9CA3AF",
+            "lines.linewidth": LW_BASELINE,
+            "lines.markersize": MARKER_SIZE,
+            "savefig.dpi": DPI,
             "savefig.bbox": "tight",
             "savefig.pad_inches": 0.02,
-            "savefig.dpi": 300,
-            "dpi": 300,
-            "figure.dpi": 300,
-            "pdf.compression": True,
+            "figure.dpi": 100,
+            "figure.autolayout": False,
+            "pdf.fonttype": 42,
+            "ps.fonttype": 42,
+            "mathtext.fontset": "cm",
         }
     )
 
 
 def get_color(method: str) -> str:
-    return _PALETTE.get(method, "#6B7280")
+    return _PALETTE.get(method, "#333333")
+
+
+def get_label(method: str) -> str:
+    return _LABELS.get(method, method.upper())
 
 
 def get_marker(method: str) -> str:
@@ -103,30 +192,23 @@ def get_linestyle(method: str) -> str:
 
 
 def get_linewidth(method: str) -> float:
-    return _LINewidths.get(method, 1.2)
+    if method.startswith("pacl"):
+        return LW_PACL
+    return LW_BASELINE
+
+
+def get_markersize(method: str) -> float:
+    if method.startswith("pacl"):
+        return MARKER_SIZE_PACL
+    return MARKER_SIZE
 
 
 def get_zorder(method: str) -> int:
-    return _ZORDER.get(method, 1)
-
-
-def get_label(method: str) -> str:
-    labels = {
-        "erm": "ERM", "cbp": "Cont. BP", "ewc": "EWC", "agem": "A-GEM",
-        "er": "ER", "derpp": "DER++", "er_ace": "ER-ACE",
-        "cls_er": "CLS-ER", "xder": "X-DER", "pacl": "PA-CL",
-        "pacl_er": "PA-CL+ER", "pacl_derpp": "PA-CL+DER++",
-        "pacl_er_ace": "PA-CL+ER-ACE", "pacl_cls_er": "PA-CL+CLS-ER",
-        "pacl_xder": "PA-CL+X-DER",
-    }
-    return labels.get(method, method)
+    return Z_ORDER.get(method, 2)
 
 
 def method_order(methods: list[str]) -> list[str]:
-    order = ["erm", "cbp", "ewc", "agem", "er", "derpp", "er_ace", "cls_er",
-             "xder", "pacl", "pacl_er", "pacl_derpp", "pacl_er_ace",
-             "pacl_cls_er", "pacl_xder"]
-    return [m for m in order if m in methods]
+    return [m for m in _METHOD_ORDER if m in methods]
 
 
 def place_legend_above(
