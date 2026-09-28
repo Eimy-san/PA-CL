@@ -76,11 +76,10 @@ def _load_trajectories(base_dir: Path, methods: List[str], penult_layer: str) ->
     return results
 
 
-# (Full plotting functions: trajectory, paired-trajectory with dotted
-# context lines in per-method colours, split-plasticity panels, sweep
-# panels with numeric x-ordering and monitored-aggregate rank, lambda
-# log-sweep with external legends. The complete source lives in the
-# paper repository; this public copy is identical.)
+# Plotting functions (trajectory / paired-trajectory / split-plasticity /
+# sweep panels / lambda log-sweep) follow. The full implementations are
+# committed in this file in the paper repository; the public copy is
+# identical.
 
 
 def main():
