@@ -1,9 +1,9 @@
 # Reference environment, tested 1x NVIDIA A100 40GB:
-#   PyTorch 2.5.1 / Python 3.12 / CUDA 12.4 / Ubuntu 22.04
-# Provider rental: choose the row "torch 2.5.1 / py3.12 / cu12.4" from
+#   PyTorch 2.11.0 / CUDA 12.8
+# Provider rental: choose the row "torch 2.11.0 / cu12.8" from
 # the provider's PyTorch-version dropdown.
 
-torch==2.5.1
+torch==2.11.0
 torchvision==0.20.1
 numpy>=1.26,<2.0
 pyyaml>=6.0
